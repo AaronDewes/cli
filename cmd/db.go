@@ -15,6 +15,7 @@ import (
 	"github.com/supabase/cli/internal/db/remote/set"
 	"github.com/supabase/cli/internal/db/reset"
 	"github.com/supabase/cli/internal/db/switch_"
+	"github.com/supabase/cli/internal/db/test"
 	"github.com/supabase/cli/internal/debug"
 )
 
@@ -134,6 +135,14 @@ var (
 			return switch_.Run(args[0])
 		},
 	}
+
+	dbTestCmd = &cobra.Command{
+		Use:   "test",
+		Short: "Tests local database with pgTAP.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return test.Run(afero.NewOsFs())
+		},
+	}
 )
 
 func init() {
@@ -144,6 +153,7 @@ func init() {
 	dbCmd.AddCommand(dbChangesCmd)
 	dbCommitCmd.Flags().BoolVar(&useMigra, "migra", false, "Use migra to generate schema diff.")
 	dbCmd.AddCommand(dbCommitCmd)
+	dbCmd.AddCommand(dbTestCmd)
 	dbPushCmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the migrations that would be applied, but don't actually apply them.")
 	dbCmd.AddCommand(dbPushCmd)
 	dbRemoteCmd.AddCommand(dbRemoteSetCmd)
