@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -34,7 +36,7 @@ var (
 		Short: "Create a branch.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return create.Run(args[0])
+			return create.Run(args[0], afero.NewOsFs())
 		},
 	}
 
@@ -43,7 +45,7 @@ var (
 		Short: "Delete a branch.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return delete.Run(args[0])
+			return delete.Run(args[0], afero.NewOsFs())
 		},
 	}
 
@@ -51,7 +53,7 @@ var (
 		Use:   "list",
 		Short: "List branches.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return list.Run()
+			return list.Run(afero.NewOsFs(), os.Stdout)
 		},
 	}
 
@@ -64,6 +66,7 @@ var (
 	}
 
 	useMigra bool
+	schema   string
 
 	dbCommitCmd = &cobra.Command{
 		Use:   "commit <migration name>",
@@ -71,7 +74,7 @@ var (
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if useMigra {
-				return commit.RunMigra(args[0], afero.NewOsFs())
+				return commit.RunMigra(args[0], schema, afero.NewOsFs())
 			}
 			return commit.Run(args[0])
 		},
@@ -152,6 +155,7 @@ func init() {
 	dbCmd.AddCommand(dbBranchCmd)
 	dbCmd.AddCommand(dbChangesCmd)
 	dbCommitCmd.Flags().BoolVar(&useMigra, "migra", false, "Use migra to generate schema diff.")
+	dbCommitCmd.Flags().StringVarP(&schema, "schema", "s", "public", "The schema to diff (defaults to public).")
 	dbCmd.AddCommand(dbCommitCmd)
 	dbCmd.AddCommand(dbTestCmd)
 	dbPushCmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the migrations that would be applied, but don't actually apply them.")

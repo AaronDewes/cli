@@ -38,9 +38,6 @@ func Run() error {
 		if err := utils.LoadConfig(); err != nil {
 			return err
 		}
-		if err := utils.InterpolateEnvInConfig(); err != nil {
-			return err
-		}
 		if err := utils.AssertSupabaseStartIsRunning(); err == nil {
 			return errors.New(utils.Aqua("supabase start") + " is already running. Try running " + utils.Aqua("supabase stop") + " first.")
 		}
@@ -529,7 +526,7 @@ EOSQL
 		// Set up current branch.
 		{
 			out, err := utils.DockerExec(ctx, utils.DbId, []string{
-				"sh", "-c", `psql --set ON_ERROR_STOP=on postgresql://postgres:postgres@localhost/template1 <<'EOSQL'
+				"sh", "-c", `PGOPTIONS='--client-min-messages=error' psql --set ON_ERROR_STOP=on postgresql://postgres:postgres@localhost/template1 <<'EOSQL'
 BEGIN;
 ` + fmt.Sprintf(utils.TerminateDbSqlFmt, "postgres") + `
 COMMIT;

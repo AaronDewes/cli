@@ -35,7 +35,7 @@ const (
 	InbucketImage  = "inbucket/inbucket:stable"
 	PostgrestImage = "postgrest/postgrest:v9.0.0.20220211"
 	DifferImage    = "supabase/pgadmin-schema-diff:cli-0.0.4"
-	PgmetaImage    = "supabase/postgres-meta:v0.40.0"
+	PgmetaImage    = "supabase/postgres-meta:v0.42.1"
 	// TODO: Hardcode version once provided upstream.
 	StudioImage    = "supabase/studio:latest"
 	DenoRelayImage = "supabase/deno-relay:v1.2.0"
@@ -57,6 +57,10 @@ DO 'BEGIN WHILE (SELECT COUNT(*) FROM pg_replication_slots) > 0 LOOP END LOOP; E
 )
 
 var (
+	// pg_dumpall --globals-only --no-role-passwords --dbname $DB_URL \
+	// | sed '/^CREATE ROLE postgres;/d' \
+	// | sed '/^ALTER ROLE postgres WITH /d' \
+	// | sed "/^ALTER ROLE .* WITH .* LOGIN /s/;$/ PASSWORD 'postgres';/"
 	//go:embed templates/globals.sql
 	GlobalsSql string
 
@@ -64,6 +68,10 @@ var (
 	ProjectRefPattern  = regexp.MustCompile(`^[a-z]{20}$`)
 	PostgresUrlPattern = regexp.MustCompile(`^postgres(?:ql)?://postgres:(.+)@(.+?)(:\d+)?/postgres$`)
 	MigrateFilePattern = regexp.MustCompile(`([0-9]+)_.*\.sql`)
+	BranchNamePattern  = regexp.MustCompile(`[[:word:]-]+`)
+
+	// These schemas are ignored from schema diffs
+	InternalSchemas = []string{"auth", "extensions", "graphql_public", "pgbouncer", "realtime", "storage", "supabase_functions", "supabase_migrations", "pg_catalog", "pg_toast", "information_schema"}
 )
 
 func GetCurrentTimestamp() string {
@@ -119,6 +127,10 @@ func AssertSupabaseStartIsRunning() error {
 		return err
 	}
 
+	return AssertSupabaseDbIsRunning()
+}
+
+func AssertSupabaseDbIsRunning() error {
 	if _, err := Docker.ContainerInspect(context.Background(), DbId); err != nil {
 		return errors.New(Aqua("supabase start") + " is not running.")
 	}
